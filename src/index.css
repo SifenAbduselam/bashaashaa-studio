@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+body {
+  font-family: 'Manrope', sans-serif;
+  background-color: #050505;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: #f5f5f2;
+  color: #050505;
+}
+
+/* Slim custom scrollbar to match the editorial, considered feel */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a28;
+}
+
+/* Signature element: viewfinder corner brackets that appear on hover,
+   echoing a film camera's frame lines — used across gallery & service imagery */
+.frame-corners {
+  position: relative;
+}
+.frame-corners::before,
+.frame-corners::after,
+.frame-corners > .fc-tl,
+.frame-corners > .fc-br {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  opacity: 0;
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 20;
+  pointer-events: none;
+}
+.frame-corners::before {
+  top: 14px;
+  left: 14px;
+  border-top: 1px solid #f5f5f2;
+  border-left: 1px solid #f5f5f2;
+  transform: translate(6px, 6px);
+}
+.frame-corners::after {
+  bottom: 14px;
+  right: 14px;
+  border-bottom: 1px solid #f5f5f2;
+  border-right: 1px solid #f5f5f2;
+  transform: translate(-6px, -6px);
+}
+.frame-corners:hover::before,
+.frame-corners:hover::after {
+  opacity: 1;
+  transform: translate(0, 0);
+}
+
+/* Vertical running spine text, magazine-style */
+.spine-text {
+  writing-mode: vertical-rl;
+  letter-spacing: 0.35em;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
