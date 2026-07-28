@@ -7,7 +7,6 @@ import hero4 from "../assets/images/hero/hero4.webp";
 import wedding from "../assets/images/gallery/wedding.webp";
 import graduation from "../assets/images/gallery/graduation.webp";
 import birthday from "../assets/images/gallery/birthday.webp";
-import nikkah from "../assets/images/gallery/nikkah.webp";
 import cultural from "../assets/images/gallery/cultural.webp";
 import maternity from "../assets/images/gallery/maternity.webp";
 import kids from "../assets/images/gallery/kids.webp";
@@ -22,7 +21,6 @@ import serviceWedding from "../assets/images/services/wedding.webp";
 import video from "../assets/images/services/video.webp";
 import serviceGraduation from "../assets/images/services/graduation.webp";
 import serviceBirthday from "../assets/images/services/birthday.webp";
-import serviceNikkah from "../assets/images/services/nikkah.webp";
 import serviceCultural from "../assets/images/services/cultural.webp";
 import serviceMaternity from "../assets/images/services/maternity.webp";
 import serviceKids from "../assets/images/services/kids.webp";
@@ -87,13 +85,7 @@ export const galleryCategories = [
     alt: "Birthday celebration photography capturing happy moments",
     size: "short",
   },
-  {
-    id: "nikkah",
-    title: "Nikkah",
-    image: nikkah,
-    alt: "Nikkah ceremony photography documenting a meaningful tradition",
-    size: "tall",
-  },
+ 
   {
   id: "portrait4",
   title: "Portrait Session",
