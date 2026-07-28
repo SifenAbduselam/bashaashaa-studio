@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useInView, animate } from 'framer-motion';
 import { stats } from '../data/photos';
 import Reveal from './Reveal';
+import about from "../assets/images/about.webp";
 
 function Counter({ value, suffix }) {
   const ref = useRef(null);
@@ -32,7 +33,7 @@ export default function AboutSection() {
       <div className="max-w-7xl mx-auto px-6 md:px-10 grid grid-cols-1 md:grid-cols-2 gap-14 md:gap-20 items-center">
         <Reveal className="overflow-hidden frame-corners">
           <img
-            src="https://images.unsplash.com/photo-1642257859842-c95f9fa8121d?auto=format&fit=crop&w=1200&q=80&sat=-100"
+            src={about}
             alt="Bashaashaa Studio, photography and video production team"
             className="w-full h-[420px] md:h-[560px] object-cover"
           />

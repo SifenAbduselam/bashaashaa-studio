@@ -1,93 +1,106 @@
-// Vercel Serverless Function — POST /api/booking
-// Forwards the booking form submission to a Telegram chat via the Telegram
-// Bot API. No traditional backend or database is used; secrets stay on the
-// server via environment variables and are never exposed to the frontend.
-//
-// Required environment variables (set in Vercel Project Settings):
-//   TELEGRAM_BOT_TOKEN  — token for your Telegram bot (from @BotFather)
-//   TELEGRAM_CHAT_ID    — chat/channel ID that should receive bookings
+import { Resend } from "resend";
 
-const REQUIRED_FIELDS = ['name', 'phone', 'email', 'service', 'date'];
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-function escapeHtml(str = '') {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'Method not allowed.' });
-  }
 
-  const { name, phone, email, service, date, message = '' } = req.body || {};
-
-  const missing = REQUIRED_FIELDS.filter(
-    (field) => !{ name, phone, email, service, date }[field]?.toString().trim()
-  );
-  if (missing.length) {
-    return res.status(400).json({
-      error: `Please fill in: ${missing.join(', ')}.`,
-    });
-  }
-  if (!EMAIL_RE.test(email)) {
-    return res.status(400).json({ error: 'Please provide a valid email address.' });
-  }
-
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
-
-  if (!botToken || !chatId) {
-    console.error('Missing TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID env vars.');
-    return res.status(500).json({
-      error: 'Booking is temporarily unavailable. Please try again later.',
+  if(req.method !== "POST"){
+    return res.status(405).json({
+      message:"Method not allowed"
     });
   }
 
-  const text = [
-    '<b>New Booking Request — Bashaashaa Studio</b>',
-    '',
-    `<b>Name:</b> ${escapeHtml(name)}`,
-    `<b>Phone:</b> ${escapeHtml(phone)}`,
-    `<b>Email:</b> ${escapeHtml(email)}`,
-    `<b>Service:</b> ${escapeHtml(service)}`,
-    `<b>Preferred Date:</b> ${escapeHtml(date)}`,
-    message ? `<b>Message:</b> ${escapeHtml(message)}` : null,
-  ]
-    .filter(Boolean)
-    .join('\n');
 
   try {
-    const telegramRes = await fetch(
-      `https://api.telegram.org/bot${botToken}/sendMessage`,
+
+    const {
+      name,
+      phone,
+      email,
+      telegram,
+      date,
+      time,
+      service
+    } = req.body;
+
+
+    const message = `
+📸 New Booking Request
+
+👤 Name:
+${name}
+
+📞 Phone:
+${phone}
+
+📧 Email:
+${email || "Not provided"}
+
+Telegram:
+${telegram || "Not provided"}
+
+📅 Date:
+${date}
+
+⏰ Time:
+${time}
+
+🎞 Service:
+${service}
+    `;
+
+
+    // TELEGRAM
+
+    await fetch(
+      `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text,
-          parse_mode: 'HTML',
-        }),
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+          chat_id:process.env.TELEGRAM_CHAT_ID,
+          text:message
+        })
       }
     );
 
-    const data = await telegramRes.json();
 
-    if (!telegramRes.ok || !data.ok) {
-      console.error('Telegram API error:', data);
-      return res.status(502).json({
-        error: 'We could not send your booking. Please try again shortly.',
-      });
-    }
 
-    return res.status(200).json({ success: true });
-  } catch (err) {
-    console.error('Booking handler error:', err);
-    return res.status(500).json({
-      error: 'Something went wrong. Please try again.',
+    // EMAIL
+
+    await resend.emails.send({
+
+      from:"Bashaashaa Website <onboarding@resend.dev>",
+
+      to:[
+        "sifenabduselam7@gmail.com"
+      ],
+
+      subject:"New Photography Booking",
+
+      text:message
+
     });
+
+
+
+    return res.status(200).json({
+      success:true
+    });
+
+
+
+  } catch(error){
+
+    console.log(error);
+
+    return res.status(500).json({
+      error:"Something went wrong"
+    });
+
   }
+
 }

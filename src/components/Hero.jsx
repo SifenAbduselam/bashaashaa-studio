@@ -30,7 +30,7 @@ export default function Hero() {
             <motion.img
               src={heroSlides[index].image}
               alt={heroSlides[index].caption}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain md:object-cover bg-ink"
               initial={{ scale: 1 }}
               animate={{ scale: 1.12 }}
               transition={{ duration: SLIDE_DURATION / 1000 + 1.6, ease: 'linear' }}
