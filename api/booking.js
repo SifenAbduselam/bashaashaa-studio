@@ -2,12 +2,11 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-
 export default async function handler(req, res) {
 
-  if(req.method !== "POST"){
+  if (req.method !== "POST") {
     return res.status(405).json({
-      message:"Method not allowed"
+      message: "Method not allowed",
     });
   }
 
@@ -21,12 +20,12 @@ export default async function handler(req, res) {
       telegram,
       date,
       time,
-      service
+      service,
     } = req.body;
 
 
     const message = `
-📸 New Booking Request
+📸 NEW BOOKING REQUEST
 
 👤 Name:
 ${name}
@@ -37,7 +36,7 @@ ${phone}
 📧 Email:
 ${email || "Not provided"}
 
-Telegram:
+💬 Telegram:
 ${telegram || "Not provided"}
 
 📅 Date:
@@ -51,54 +50,60 @@ ${service}
     `;
 
 
-    // TELEGRAM
 
-    await fetch(
+    // SEND TO TELEGRAM
+
+    const telegramResponse = await fetch(
       `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json"
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        body:JSON.stringify({
-          chat_id:process.env.TELEGRAM_CHAT_ID,
-          text:message
-        })
+        body: JSON.stringify({
+          chat_id: process.env.TELEGRAM_CHAT_ID,
+          text: message,
+        }),
       }
     );
 
 
+    if (!telegramResponse.ok) {
+      throw new Error("Telegram notification failed");
+    }
 
-    // EMAIL
+
+
+    // SEND EMAIL USING RESEND
 
     await resend.emails.send({
 
-      from:"Bashaashaa Website <onboarding@resend.dev>",
+      from: "Bashaashaa Website <onboarding@resend.dev>",
 
-      to:[
+      to: [
         "sifenabduselam7@gmail.com"
       ],
 
-      subject:"New Photography Booking",
+      subject: "New Photography Booking Request",
 
-      text:message
+      text: message,
 
     });
 
 
 
     return res.status(200).json({
-      success:true
+      success: true,
     });
 
 
 
-  } catch(error){
+  } catch (error) {
 
-    console.log(error);
+    console.error(error);
 
     return res.status(500).json({
-      error:"Something went wrong"
+      error: error.message || "Something went wrong",
     });
 
   }
