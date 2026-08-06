@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { services } from "../data/photos";
-
+import { supabase } from "../lib/supabase";
 const initialState = {
   name: "",
   phone: "",
