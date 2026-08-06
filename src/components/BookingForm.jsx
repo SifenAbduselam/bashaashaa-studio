@@ -290,6 +290,23 @@ if (!res.ok) {
 
         </select>
 
+        <div>
+
+<label className="font-mono text-[10px] tracking-widest2 uppercase text-smoke">
+Payment Screenshot
+</label>
+
+
+<input
+  required
+  type="file"
+  accept="image/png,image/jpeg,image/webp"
+  onChange={handleFileChange}
+  className="mt-3 text-bone"
+/>
+
+</div>
+
 
       </div>
 
