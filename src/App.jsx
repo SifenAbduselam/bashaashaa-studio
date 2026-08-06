@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { supabase } from "./lib/supabase";
+
 import Home from "./pages/Home";
 import FullGallery from "./pages/FullGallery";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
- console.log(supabase);
+
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 900);
     return () => clearTimeout(t);

@@ -10,6 +10,7 @@ const initialState = {
   service: services[0].title,
   date: "",
   time: "",
+   paymentScreenshot: null,
 };
 
 const FIELD_CLASS =
