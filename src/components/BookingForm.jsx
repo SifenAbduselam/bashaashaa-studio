@@ -24,6 +24,18 @@ export default function BookingForm() {
   const [status, setStatus] = useState("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
+const handleFileChange = (e) => {
+
+  const file = e.target.files[0];
+
+  setForm((prev) => ({
+    ...prev,
+    paymentScreenshot: file,
+  }));
+
+};
+
+
 
   const update = (key) => (e) => {
     setForm((prev) => ({
