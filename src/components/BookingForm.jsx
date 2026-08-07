@@ -59,7 +59,6 @@ console.log(file);
   };
 
 const handleSubmit = async (e) => {
-
   e.preventDefault();
 
   setStatus("sending");
@@ -67,10 +66,36 @@ const handleSubmit = async (e) => {
 
   try {
 
+    // 1. Check if selected date + time is already booked
+
+    const { data: existingBooking, error: checkError } =
+      await supabase
+        .from("bookings")
+        .select("id")
+        .eq("booking_date", form.date)
+        .eq("booking_time", form.time)
+        .limit(1);
+
+
+    if (checkError) {
+      throw new Error(checkError.message);
+    }
+
+
+    if (existingBooking.length > 0) {
+      throw new Error(
+        "This time slot is already booked. Please choose another time."
+      );
+    }
+
+
+
     let screenshotUrl = "";
 
 
-    // Upload payment screenshot first
+
+    // 2. Upload payment screenshot after availability check
+
     if (form.paymentScreenshot) {
 
       const file = form.paymentScreenshot;
@@ -78,36 +103,15 @@ const handleSubmit = async (e) => {
       const fileName = `${Date.now()}-${file.name}`;
 
 
-      const { error: uploadError } = await supabase.storage
-        .from("payment-screenshots")
-        .upload(fileName, file);
+      const { error: uploadError } =
+        await supabase.storage
+          .from("payment-screenshots")
+          .upload(fileName, file);
 
 
       if (uploadError) {
         throw new Error(uploadError.message);
       }
-
-      // Check if selected time slot is already booked
-
-const { data: existingBooking, error: checkError } =
-  await supabase
-    .from("bookings")
-    .select("id")
-    .eq("booking_date", form.date)
-    .eq("booking_time", form.time)
-    .limit(1);
-
-
-if (checkError) {
-  throw new Error(checkError.message);
-}
-
-
-if (existingBooking.length > 0) {
-  throw new Error(
-    "This time slot is already booked. Please choose another time."
-  );
-}
 
 
 
@@ -115,6 +119,7 @@ if (existingBooking.length > 0) {
         await supabase.storage
           .from("payment-screenshots")
           .createSignedUrl(fileName, 60 * 60);
+
 
 
       if (signedUrlError) {
@@ -128,7 +133,9 @@ if (existingBooking.length > 0) {
 
 
 
-    // Send booking data to API
+
+    // 3. Send booking data to API
+
     const res = await fetch("/api/booking", {
 
       method: "POST",
@@ -197,7 +204,6 @@ if (existingBooking.length > 0) {
   }
 
 };
-
 
 
   return (
