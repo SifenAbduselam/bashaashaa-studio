@@ -307,23 +307,27 @@ const handleSubmit = async (e) => {
 
 
 
+<select
+  required
+  value={form.time}
+  onChange={update("time")}
+  className={`${FIELD_CLASS} [color-scheme:dark]`}
+>
+  <option value="">
+    Select a time
+  </option>
 
-        <div>
+  {TIME_SLOTS.map((slot) => (
+    <option
+      key={slot}
+      value={slot}
+      className="bg-ink"
+    >
+      {slot}
+    </option>
+  ))}
 
-          <label className="font-mono text-[10px] tracking-widest2 uppercase text-smoke">
-            Preferred Time
-          </label>
-
-
-          <input
-            required
-            type="time"
-            value={form.time}
-            onChange={update("time")}
-            className={`${FIELD_CLASS} [color-scheme:dark]`}
-          />
-
-        </div>
+</select>
 
 
       </div>
