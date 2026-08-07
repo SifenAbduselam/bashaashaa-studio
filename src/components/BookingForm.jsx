@@ -27,7 +27,7 @@ export default function BookingForm() {
 const handleFileChange = (e) => {
 
   const file = e.target.files[0];
-
+console.log(file);
   setForm((prev) => ({
     ...prev,
     paymentScreenshot: file,
@@ -44,64 +44,122 @@ const handleFileChange = (e) => {
     }));
   };
 
+const handleSubmit = async (e) => {
 
-  const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    e.preventDefault();
+  setStatus("sending");
+  setErrorMsg("");
 
-    setStatus("sending");
-    setErrorMsg("");
+  try {
 
-
-    try {
-
-      const res = await fetch("/api/booking", {
-
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify(form),
-
-      });
+    let screenshotUrl = "";
 
 
+    // Upload payment screenshot first
+    if (form.paymentScreenshot) {
 
-     const text = await res.text();
+      const file = form.paymentScreenshot;
 
-let data = {};
-
-try {
-  data = text ? JSON.parse(text) : {};
-} catch {
-  data = {};
-}
+      const fileName = `${Date.now()}-${file.name}`;
 
 
-if (!res.ok) {
-  throw new Error(data.error || "Server error");
-}
+      const { error: uploadError } = await supabase.storage
+        .from("payment-screenshots")
+        .upload(fileName, file);
 
 
-      setStatus("success");
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
 
-      setForm(initialState);
+
+      const { data: signedUrlData, error: signedUrlError } =
+        await supabase.storage
+          .from("payment-screenshots")
+          .createSignedUrl(fileName, 60 * 60);
 
 
+      if (signedUrlError) {
+        throw new Error(signedUrlError.message);
+      }
 
-    } catch (error) {
 
-      setStatus("error");
-
-      setErrorMsg(
-        error.message || "Something went wrong"
-      );
+      screenshotUrl = signedUrlData.signedUrl;
 
     }
 
-  };
+
+
+    // Send booking data to API
+    const res = await fetch("/api/booking", {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+
+        name: form.name,
+        phone: form.phone,
+        email: form.email,
+        telegram: form.telegram,
+        service: form.service,
+        date: form.date,
+        time: form.time,
+        screenshotUrl,
+
+      }),
+
+    });
+
+
+
+    const text = await res.text();
+
+    let data = {};
+
+    try {
+
+      data = text ? JSON.parse(text) : {};
+
+    } catch {
+
+      data = {};
+
+    }
+
+
+
+    if (!res.ok) {
+
+      throw new Error(data.error || "Server error");
+
+    }
+
+
+
+    setStatus("success");
+
+    setForm(initialState);
+
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    setStatus("error");
+
+    setErrorMsg(
+      error.message || "Something went wrong"
+    );
+
+  }
+
+};
 
 
 
