@@ -87,6 +87,29 @@ const handleSubmit = async (e) => {
         throw new Error(uploadError.message);
       }
 
+      // Check if selected time slot is already booked
+
+const { data: existingBooking, error: checkError } =
+  await supabase
+    .from("bookings")
+    .select("id")
+    .eq("booking_date", form.date)
+    .eq("booking_time", form.time)
+    .limit(1);
+
+
+if (checkError) {
+  throw new Error(checkError.message);
+}
+
+
+if (existingBooking.length > 0) {
+  throw new Error(
+    "This time slot is already booked. Please choose another time."
+  );
+}
+
+
 
       const { data: signedUrlData, error: signedUrlError } =
         await supabase.storage
