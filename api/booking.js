@@ -66,11 +66,19 @@ export default async function handler(req, res) {
 
 
 
-    if (databaseError) {
+   if (databaseError) {
 
-      throw new Error(databaseError.message);
+  if (databaseError.code === "23505") {
 
-    }
+    throw new Error(
+      "This time slot is already booked. Please choose another time."
+    );
+
+  }
+
+  throw new Error(databaseError.message);
+
+}
 
 
 
