@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     // 1. SAVE BOOKING TO DATABASE
 
     const { error: databaseError } = await supabase
-      .from("bashaashaa")
+      .from("bookings")
       .insert([
 
         {
