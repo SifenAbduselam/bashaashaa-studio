@@ -34,21 +34,14 @@ const FIELD_CLASS =
 
 export default function BookingForm() {
   const [form, setForm] = useState(initialState);
-
   const [status, setStatus] = useState("idle");
   const [errorMsg, setErrorMsg] = useState("");
-
-  // English / Amharic
   const [language, setLanguage] = useState("en");
-
-  // Slots already booked for selected date
   const [bookedSlots, setBookedSlots] = useState([]);
-
-  // Loading slots
   const [loadingSlots, setLoadingSlots] = useState(false);
 
-  // File input reference
   const fileInputRef = useRef(null);
+  const notificationTimerRef = useRef(null);
 
   // =========================================================
   // TRANSLATIONS
@@ -77,6 +70,9 @@ export default function BookingForm() {
       chooseFile: "Choose payment screenshot",
       noFile: "No file selected",
 
+      selectDate: "Select a date first",
+      selectTime: "Select a time",
+
       send: "Send Booking Request",
       sending: "Sending...",
 
@@ -87,14 +83,21 @@ export default function BookingForm() {
       available: "Available",
       loading: "Checking availability...",
 
+      slotsBooked: "slot(s) already booked",
+      allAvailable: "All time slots are available",
+
       required: "Please fill in all required fields.",
 
+      invalidName: "Please enter your full name.",
+
       invalidPhone:
-        "Please enter a valid Ethiopian phone number (09XXXXXXXX or 07XXXXXXXX).",
+        "Please enter a valid Ethiopian phone number (09XXXXXXXX, 07XXXXXXXX, +2519XXXXXXXX or +2517XXXXXXXX).",
 
       invalidEmail: "Please enter a valid email address.",
 
-      invalidDate: "Please select a date.",
+      invalidDate: "Please select a valid date.",
+
+      pastDate: "Please select today or a future date.",
 
       invalidTime: "Please select a time.",
 
@@ -104,6 +107,8 @@ export default function BookingForm() {
 
       slotTaken:
         "This time slot was just booked by someone else. Please choose another time.",
+
+      uploadError: "Payment screenshot could not be uploaded.",
 
       serverError: "Something went wrong. Please try again.",
     },
@@ -130,6 +135,9 @@ export default function BookingForm() {
       chooseFile: "የክፍያ ምስል ይምረጡ",
       noFile: "ምስል አልተመረጠም",
 
+      selectDate: "መጀመሪያ ቀን ይምረጡ",
+      selectTime: "ሰዓት ይምረጡ",
+
       send: "የቦታ ማስያዣ ጥያቄ ይላኩ",
       sending: "በመላክ ላይ...",
 
@@ -140,14 +148,21 @@ export default function BookingForm() {
       available: "ክፍት",
       loading: "የሰዓት ክፍትነት በመፈተሽ ላይ...",
 
+      slotsBooked: "ሰዓት(ቶች) ተይዘዋል",
+      allAvailable: "ሁሉም ሰዓቶች ክፍት ናቸው",
+
       required: "እባክዎ አስፈላጊ መስኮቶችን ይሙሉ።",
 
+      invalidName: "እባክዎ ሙሉ ስምዎን ያስገቡ።",
+
       invalidPhone:
-        "እባክዎ ትክክለኛ የኢትዮጵያ ስልክ ቁጥር ያስገቡ (09XXXXXXXX ወይም 07XXXXXXXX)።",
+        "እባክዎ ትክክለኛ የኢትዮጵያ ስልክ ቁጥር ያስገቡ።",
 
       invalidEmail: "እባክዎ ትክክለኛ ኢሜይል ያስገቡ።",
 
-      invalidDate: "እባክዎ ቀን ይምረጡ።",
+      invalidDate: "እባክዎ ትክክለኛ ቀን ይምረጡ።",
+
+      pastDate: "እባክዎ ዛሬን ወይም የወደፊት ቀን ይምረጡ።",
 
       invalidTime: "እባክዎ ሰዓት ይምረጡ።",
 
@@ -158,11 +173,65 @@ export default function BookingForm() {
       slotTaken:
         "ይህ ሰዓት አሁን በሌላ ሰው ተይዟል። እባክዎ ሌላ ሰዓት ይምረጡ።",
 
+      uploadError: "የክፍያ ማረጋገጫው መላክ አልተቻለም።",
+
       serverError: "ስህተት ተፈጥሯል። እባክዎ እንደገና ይሞክሩ።",
     },
   };
 
   const t = text[language];
+
+  // =========================================================
+  // TODAY
+  // =========================================================
+
+  const today = new Date().toISOString().split("T")[0];
+
+  // =========================================================
+  // CLEANUP NOTIFICATION TIMER
+  // =========================================================
+
+  useEffect(() => {
+    return () => {
+      if (notificationTimerRef.current) {
+        clearTimeout(notificationTimerRef.current);
+      }
+    };
+  }, []);
+
+  // =========================================================
+  // SHOW ERROR
+  // =========================================================
+
+  const showError = (message) => {
+    if (notificationTimerRef.current) {
+      clearTimeout(notificationTimerRef.current);
+    }
+
+    setStatus("error");
+    setErrorMsg(message);
+
+    notificationTimerRef.current = setTimeout(() => {
+      setStatus("idle");
+      setErrorMsg("");
+    }, 5000);
+  };
+
+  // =========================================================
+  // SHOW SUCCESS
+  // =========================================================
+
+  const showSuccess = () => {
+    if (notificationTimerRef.current) {
+      clearTimeout(notificationTimerRef.current);
+    }
+
+    setStatus("success");
+
+    notificationTimerRef.current = setTimeout(() => {
+      setStatus("idle");
+    }, 5000);
+  };
 
   // =========================================================
   // UPDATE FORM
@@ -173,6 +242,11 @@ export default function BookingForm() {
       ...prev,
       [key]: e.target.value,
     }));
+
+    if (status === "error") {
+      setStatus("idle");
+      setErrorMsg("");
+    }
   };
 
   // =========================================================
@@ -187,6 +261,8 @@ export default function BookingForm() {
       date: selectedDate,
       time: "",
     }));
+
+    setBookedSlots([]);
   };
 
   // =========================================================
@@ -201,6 +277,7 @@ export default function BookingForm() {
         ...prev,
         paymentScreenshot: null,
       }));
+
       return;
     }
 
@@ -228,42 +305,20 @@ export default function BookingForm() {
       ...prev,
       paymentScreenshot: file,
     }));
+
+    if (status === "error") {
+      setStatus("idle");
+      setErrorMsg("");
+    }
   };
 
   // =========================================================
-  // ERROR POPUP
-  // =========================================================
-
-  const showError = (message) => {
-    setStatus("error");
-    setErrorMsg(message);
-
-    setTimeout(() => {
-      setStatus((current) =>
-        current === "error" ? "idle" : current
-      );
-    }, 5000);
-  };
-
-  // =========================================================
-  // SUCCESS POPUP
-  // =========================================================
-
-  const showSuccess = () => {
-    setStatus("success");
-
-    setTimeout(() => {
-      setStatus((current) =>
-        current === "success" ? "idle" : current
-      );
-    }, 5000);
-  };
-
-  // =========================================================
-  // LOAD BOOKED SLOTS WHEN DATE CHANGES
+  // LOAD BOOKED SLOTS
   // =========================================================
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadBookedSlots = async () => {
       if (!form.date) {
         setBookedSlots([]);
@@ -278,6 +333,8 @@ export default function BookingForm() {
           .select("booking_time")
           .eq("booking_date", form.date);
 
+        if (cancelled) return;
+
         if (error) {
           console.error("Availability error:", error);
           setBookedSlots([]);
@@ -290,7 +347,8 @@ export default function BookingForm() {
 
         setBookedSlots(slots);
 
-        // If currently selected time became unavailable
+        // If the selected slot became booked,
+        // clear it and notify the user.
         if (form.time && slots.includes(form.time)) {
           setForm((prev) => ({
             ...prev,
@@ -300,14 +358,22 @@ export default function BookingForm() {
           showError(t.slotTaken);
         }
       } catch (error) {
-        console.error(error);
-        setBookedSlots([]);
+        if (!cancelled) {
+          console.error("Availability error:", error);
+          setBookedSlots([]);
+        }
       } finally {
-        setLoadingSlots(false);
+        if (!cancelled) {
+          setLoadingSlots(false);
+        }
       }
     };
 
     loadBookedSlots();
+
+    return () => {
+      cancelled = true;
+    };
   }, [form.date]);
 
   // =========================================================
@@ -315,8 +381,17 @@ export default function BookingForm() {
   // =========================================================
 
   const validateForm = () => {
-    if (!form.name || !form.phone || !form.date || !form.time) {
+    const cleanName = form.name.trim();
+    const cleanPhone = form.phone.trim();
+    const cleanEmail = form.email.trim();
+
+    if (!cleanName || !cleanPhone || !form.date || !form.time) {
       showError(t.required);
+      return false;
+    }
+
+    if (cleanName.length < 2) {
+      showError(t.invalidName);
       return false;
     }
 
@@ -325,27 +400,26 @@ export default function BookingForm() {
     // 07XXXXXXXX
     // +2519XXXXXXXX
     // +2517XXXXXXXX
-
     const phoneRegex =
       /^(09|07)\d{8}$|^\+251(9|7)\d{8}$/;
 
-    if (!phoneRegex.test(form.phone.trim())) {
+    if (!phoneRegex.test(cleanPhone)) {
       showError(t.invalidPhone);
       return false;
     }
 
-    if (form.email) {
+    if (cleanEmail) {
       const emailRegex =
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-      if (!emailRegex.test(form.email.trim())) {
+      if (!emailRegex.test(cleanEmail)) {
         showError(t.invalidEmail);
         return false;
       }
     }
 
-    if (!form.date) {
-      showError(t.invalidDate);
+    if (form.date < today) {
+      showError(t.pastDate);
       return false;
     }
 
@@ -354,7 +428,9 @@ export default function BookingForm() {
       return false;
     }
 
-    // Frontend availability check
+    // Frontend availability check.
+    // The database UNIQUE constraint remains
+    // the final protection against double booking.
     if (bookedSlots.includes(form.time)) {
       showError(t.slotTaken);
       return false;
@@ -364,15 +440,41 @@ export default function BookingForm() {
   };
 
   // =========================================================
+  // REFRESH BOOKED SLOTS
+  // =========================================================
+
+  const refreshBookedSlots = async (date) => {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("booking_time")
+      .eq("booking_date", date);
+
+    if (error) {
+      console.error("Could not refresh slots:", error);
+      return;
+    }
+
+    const slots = (data || []).map(
+      (booking) => booking.booking_time
+    );
+
+    setBookedSlots(slots);
+  };
+
+  // =========================================================
   // SUBMIT
   // =========================================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (status === "sending") return;
+    if (status === "sending") {
+      return;
+    }
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
     setStatus("sending");
     setErrorMsg("");
@@ -387,7 +489,10 @@ export default function BookingForm() {
       if (form.paymentScreenshot) {
         const file = form.paymentScreenshot;
 
-        const fileName = `${Date.now()}-${file.name}`;
+        // Deliberately NOT using a template literal here.
+        // This avoids the parser problem from the previous file.
+        const fileName =
+          Date.now() + "-" + file.name;
 
         const { error: uploadError } =
           await supabase.storage
@@ -395,7 +500,7 @@ export default function BookingForm() {
             .upload(fileName, file);
 
         if (uploadError) {
-          throw new Error(uploadError.message);
+          throw new Error(t.uploadError);
         }
 
         const {
@@ -406,10 +511,11 @@ export default function BookingForm() {
           .createSignedUrl(fileName, 60 * 60);
 
         if (signedUrlError) {
-          throw new Error(signedUrlError.message);
+          throw new Error(t.uploadError);
         }
 
-        screenshotUrl = signedUrlData.signedUrl;
+        screenshotUrl =
+          signedUrlData?.signedUrl || "";
       }
 
       // =====================================================
@@ -424,10 +530,10 @@ export default function BookingForm() {
         },
 
         body: JSON.stringify({
-          name: form.name,
-          phone: form.phone,
-          email: form.email,
-          telegram: form.telegram,
+          name: form.name.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim(),
+          telegram: form.telegram.trim(),
           service: form.service,
           date: form.date,
           time: form.time,
@@ -435,12 +541,14 @@ export default function BookingForm() {
         }),
       });
 
-      const text = await res.text();
+      const responseText = await res.text();
 
       let data = {};
 
       try {
-        data = text ? JSON.parse(text) : {};
+        data = responseText
+          ? JSON.parse(responseText)
+          : {};
       } catch {
         data = {};
       }
@@ -450,21 +558,9 @@ export default function BookingForm() {
       // =====================================================
 
       if (!res.ok) {
+        // HTTP 409 = unique booking slot violation.
         if (res.status === 409) {
-          // The database unique index caught a race condition.
-          // This is VERY important for double-booking protection.
-
-          // Refresh booked slots
-          const { data: latestBookings } = await supabase
-            .from("bookings")
-            .select("booking_time")
-            .eq("booking_date", form.date);
-
-          setBookedSlots(
-            (latestBookings || []).map(
-              (booking) => booking.booking_time
-            )
-          );
+          await refreshBookedSlots(form.date);
 
           setForm((prev) => ({
             ...prev,
@@ -474,48 +570,63 @@ export default function BookingForm() {
           throw new Error(t.slotTaken);
         }
 
-        throw new Error(data.error || t.serverError);
+        throw new Error(
+          data.error || t.serverError
+        );
       }
 
       // =====================================================
       // 4. SUCCESS
       // =====================================================
 
-      setForm(initialState);
+      const bookedDate = form.date;
+      const bookedTime = form.time;
 
-      // THIS clears the actual browser file input.
+      // Reset ALL form fields.
+      setForm({
+        ...initialState,
+        service: services[0].title,
+      });
+
+      // Clear the actual browser file input.
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
 
-      // Remove booked slot from the current list immediately.
-      setBookedSlots((prev) => [...prev, form.time]);
+      // Immediately mark the booked slot as unavailable.
+      setBookedSlots((prev) => {
+        if (prev.includes(bookedTime)) {
+          return prev;
+        }
+
+        return [...prev, bookedTime];
+      });
+
+      // Keep the date's booking state refreshed in case
+      // another booking happened at the same time.
+      await refreshBookedSlots(bookedDate);
 
       showSuccess();
     } catch (error) {
       console.error("Booking error:", error);
 
-      setStatus("error");
+      if (error instanceof Error) {
+        setStatus("error");
+        setErrorMsg(error.message || t.serverError);
 
-      setErrorMsg(
-        error.message || t.serverError
-      );
+        if (notificationTimerRef.current) {
+          clearTimeout(notificationTimerRef.current);
+        }
 
-      setTimeout(() => {
-        setStatus((current) =>
-          current === "error" ? "idle" : current
-        );
-      }, 5000);
+        notificationTimerRef.current = setTimeout(() => {
+          setStatus("idle");
+          setErrorMsg("");
+        }, 5000);
+      } else {
+        showError(t.serverError);
+      }
     }
   };
-
-  // =========================================================
-  // TODAY
-  // =========================================================
-
-  const today = new Date()
-    .toISOString()
-    .split("T")[0];
 
   // =========================================================
   // RENDER
@@ -530,11 +641,11 @@ export default function BookingForm() {
       <div className="flex justify-end mb-6">
         <button
           type="button"
-          onClick={() =>
+          onClick={() => {
             setLanguage((current) =>
               current === "en" ? "am" : "en"
-            )
-          }
+            );
+          }}
           className="
             text-[10px]
             tracking-[0.2em]
@@ -549,9 +660,7 @@ export default function BookingForm() {
             transition-colors
           "
         >
-          {language === "en"
-            ? "አማርኛ"
-            : "English"}
+          {language === "en" ? "አማርኛ" : "English"}
         </button>
       </div>
 
@@ -562,10 +671,15 @@ export default function BookingForm() {
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-8"
+        noValidate
       >
-        {/* NAME + PHONE */}
+        {/* ===================================================
+            NAME + PHONE
+        =================================================== */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* NAME */}
+
           <div>
             <label className="font-mono text-[10px] tracking-widest uppercase text-smoke">
               {t.fullName}
@@ -581,6 +695,8 @@ export default function BookingForm() {
             />
           </div>
 
+          {/* PHONE */}
+
           <div>
             <label className="font-mono text-[10px] tracking-widest uppercase text-smoke">
               {t.phone}
@@ -589,6 +705,7 @@ export default function BookingForm() {
             <input
               required
               type="tel"
+              inputMode="tel"
               value={form.phone}
               onChange={update("phone")}
               placeholder={t.phonePlaceholder}
@@ -606,9 +723,13 @@ export default function BookingForm() {
           </div>
         </div>
 
-        {/* EMAIL + TELEGRAM */}
+        {/* ===================================================
+            EMAIL + TELEGRAM
+        =================================================== */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* EMAIL */}
+
           <div>
             <label className="font-mono text-[10px] tracking-widest uppercase text-smoke">
               {t.email}
@@ -621,7 +742,18 @@ export default function BookingForm() {
               placeholder={t.emailPlaceholder}
               className={FIELD_CLASS}
             />
+
+            {form.email &&
+              !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+                form.email.trim()
+              ) && (
+                <p className="mt-2 text-[10px] text-parchment">
+                  {t.invalidEmail}
+                </p>
+              )}
           </div>
+
+          {/* TELEGRAM */}
 
           <div>
             <label className="font-mono text-[10px] tracking-widest uppercase text-smoke">
@@ -638,7 +770,9 @@ export default function BookingForm() {
           </div>
         </div>
 
-        {/* DATE + TIME */}
+        {/* ===================================================
+            DATE + TIME
+        =================================================== */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* DATE */}
@@ -676,8 +810,8 @@ export default function BookingForm() {
                 {loadingSlots
                   ? t.loading
                   : !form.date
-                  ? t.date
-                  : t.time}
+                  ? t.selectDate
+                  : t.selectTime}
               </option>
 
               {TIME_SLOTS.map((slot) => {
@@ -693,28 +827,30 @@ export default function BookingForm() {
                   >
                     {slot}
                     {isBooked
-                      ? ` — ${t.booked}`
+                      ? " — " + t.booked
                       : ""}
                   </option>
                 );
               })}
             </select>
 
+            {/* AVAILABILITY STATUS */}
+
             {form.date && !loadingSlots && (
               <p className="mt-2 text-[10px] text-smoke">
                 {bookedSlots.length > 0
-                  ? `${bookedSlots.length} ${language === "en"
-                      ? "slot(s) already booked"
-                      : "ሰዓት(ቶች) ተይዘዋል"}`
-                  : language === "en"
-                  ? "All time slots are available"
-                  : "ሁሉም ሰዓቶች ክፍት ናቸው"}
+                  ? bookedSlots.length +
+                    " " +
+                    t.slotsBooked
+                  : t.allAvailable}
               </p>
             )}
           </div>
         </div>
 
-        {/* SERVICE */}
+        {/* ===================================================
+            SERVICE
+        =================================================== */}
 
         <div>
           <label className="font-mono text-[10px] tracking-widest uppercase text-smoke">
@@ -738,7 +874,9 @@ export default function BookingForm() {
           </select>
         </div>
 
-        {/* PAYMENT SCREENSHOT */}
+        {/* ===================================================
+            PAYMENT SCREENSHOT
+        =================================================== */}
 
         <div>
           <label className="font-mono text-[10px] tracking-widest uppercase text-smoke">
@@ -774,7 +912,7 @@ export default function BookingForm() {
               {t.chooseFile}
             </label>
 
-            <p className="mt-3 text-xs text-smoke">
+            <p className="mt-3 text-xs text-smoke break-all">
               {form.paymentScreenshot
                 ? form.paymentScreenshot.name
                 : t.noFile}
@@ -782,7 +920,9 @@ export default function BookingForm() {
           </div>
         </div>
 
-        {/* SUBMIT */}
+        {/* ===================================================
+            SUBMIT BUTTON
+        =================================================== */}
 
         <button
           type="submit"
@@ -813,7 +953,7 @@ export default function BookingForm() {
       </form>
 
       {/* =====================================================
-          SUCCESS / ERROR TOAST
+          SUCCESS / ERROR POPUPS
       ===================================================== */}
 
       <AnimatePresence>
@@ -848,13 +988,19 @@ export default function BookingForm() {
               shadow-2xl
             "
           >
-            <p className="text-sm text-bone">
-              {t.success}
-            </p>
+            <div className="flex items-start gap-3">
+              <div className="mt-1 h-2 w-2 rounded-full bg-bone shrink-0" />
 
-            <p className="mt-1 text-xs text-smoke">
-              {t.successDetail}
-            </p>
+              <div>
+                <p className="text-sm text-bone">
+                  {t.success}
+                </p>
+
+                <p className="mt-1 text-xs text-smoke">
+                  {t.successDetail}
+                </p>
+              </div>
+            </div>
           </motion.div>
         )}
 
@@ -889,9 +1035,15 @@ export default function BookingForm() {
               shadow-2xl
             "
           >
-            <p className="text-sm text-parchment">
-              {errorMsg}
-            </p>
+            <div className="flex items-start gap-3">
+              <div className="mt-1 h-2 w-2 rounded-full bg-parchment shrink-0" />
+
+              <div>
+                <p className="text-sm text-parchment">
+                  {errorMsg}
+                </p>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
