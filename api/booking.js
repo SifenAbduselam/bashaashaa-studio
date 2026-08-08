@@ -1,4 +1,3 @@
-```javascript
 import { Resend } from "resend";
 import { createClient } from "@supabase/supabase-js";
 
@@ -10,7 +9,6 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  // Only allow POST requests
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed",
@@ -29,16 +27,16 @@ export default async function handler(req, res) {
       screenshotUrl,
     } = req.body;
 
-    // Basic validation
+    // Required fields
     if (!name || !phone || !date || !time || !service) {
       return res.status(400).json({
         error: "Please fill in all required fields.",
       });
     }
 
-    // =========================================================
+    // =====================================================
     // 1. SAVE BOOKING
-    // =========================================================
+    // =====================================================
 
     const { data: insertedBooking, error: databaseError } =
       await supabase
@@ -58,17 +56,15 @@ export default async function handler(req, res) {
         ])
         .select();
 
-    // Log the database result for debugging
     console.log("INSERT RESULT:", insertedBooking);
     console.log("INSERT ERROR:", databaseError);
 
-    // =========================================================
-    // 2. HANDLE DATABASE ERRORS
-    // =========================================================
+    // =====================================================
+    // 2. HANDLE DATABASE ERROR
+    // =====================================================
 
     if (databaseError) {
-      // PostgreSQL error 23505 = duplicate value
-      // This is triggered by the unique_booking_slot index.
+      // 23505 = duplicate booking slot
       if (databaseError.code === "23505") {
         return res.status(409).json({
           error:
@@ -83,9 +79,9 @@ export default async function handler(req, res) {
       });
     }
 
-    // =========================================================
-    // 3. CREATE NOTIFICATION MESSAGE
-    // =========================================================
+    // =====================================================
+    // 3. CREATE MESSAGE
+    // =====================================================
 
     const message = `
 📸 NEW BOOKING REQUEST
@@ -115,9 +111,9 @@ ${service}
 ${screenshotUrl || "Not provided"}
 `;
 
-    // =========================================================
+    // =====================================================
     // 4. SEND TELEGRAM
-    // =========================================================
+    // =====================================================
 
     try {
       const telegramResponse = await fetch(
@@ -141,13 +137,12 @@ ${screenshotUrl || "Not provided"}
         );
       }
     } catch (telegramError) {
-      // Do NOT cancel the booking if Telegram fails.
       console.error("Telegram error:", telegramError);
     }
 
-    // =========================================================
+    // =====================================================
     // 5. SEND EMAIL
-    // =========================================================
+    // =====================================================
 
     try {
       await resend.emails.send({
@@ -157,13 +152,12 @@ ${screenshotUrl || "Not provided"}
         text: message,
       });
     } catch (emailError) {
-      // Do NOT cancel the booking if email fails.
       console.error("Email error:", emailError);
     }
 
-    // =========================================================
+    // =====================================================
     // 6. SUCCESS
-    // =========================================================
+    // =====================================================
 
     return res.status(200).json({
       success: true,
@@ -177,4 +171,3 @@ ${screenshotUrl || "Not provided"}
     });
   }
 }
-```
